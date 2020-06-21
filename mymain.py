@@ -3,6 +3,8 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from skfuzzy.cluster import cmeans, cmeans_predict
 from sklearn.cluster import KMeans
+import os
+from datetime import datetime
 """use crisp and fuzzy clustering
 use at least 10 different division matrices at start (random choice)
 Change parameters of fuzzy and crisp clustering -  In this way try to find the 
@@ -18,6 +20,15 @@ def load_data():
     test_data = np.delete(test_data, slice(1, 16), 1)
     return train_data, test_data
 
+def create_directories():
+    script_dir = os.path.dirname(__file__)
+    results_dir = os.path.join(script_dir, 'images/')
+    current_working_dir = os.path.join(results_dir, datetime.now().strftime(
+        "%Y_%m_%d_%H_%M_%S/"))
+    if not os.path.isdir(results_dir):
+        os.makedirs(results_dir)
+    os.makedirs(current_working_dir)
+    return current_working_dir
 
 def perform_PCA(training: np.array, test: np.array):
     pca = PCA(n_components=2)
@@ -35,12 +46,13 @@ def add_diagnosis_info(arr: np.array, diagnosis: np.array):
     return ret
 
 
-def plot_results(data: np.array, title: type.__str__, no_clusters=3):
+def plot_results(data: np.array, title: type.__str__, dir, no_clusters=3):
     for clust in range(no_clusters, 0, -1):
         plt.plot(data[data[:, 2] == clust, 0], data[data[:, 2] == clust, 1],
                  'o', markersize=3)
     plt.title(title)
-    plt.show()
+    plt.savefig(dir + title)
+    plt.close()
 
 
 def perform_cmeans(train_set: np.array, test_set: np.array,
@@ -66,27 +78,36 @@ def perform_kmeans(train_set: np.array, test_set: np.array,
 
 
 def main():
+    current_working_dir = create_directories()
     train_data, test_data = load_data()
 
     train_2d, test_2d = perform_PCA(train_data[:, :-1], test_data[:, :-1])
     train_2d_with_diagnosis = add_diagnosis_info(train_2d, train_data[:, -1])
     test_2d_with_diagnosis = add_diagnosis_info(test_2d, test_data[:, -1])
-    plot_results(train_2d_with_diagnosis, "training data - given")
-    plot_results(test_2d_with_diagnosis, "test data - given")
+    plot_results(train_2d_with_diagnosis, "training dataset - given classes",
+                 current_working_dir)
+    plot_results(test_2d_with_diagnosis, "test dataset - given classes",
+                 current_working_dir)
 
     train_clusters, test_clusters = perform_cmeans(train_data[:, :-1],
                                                    test_data[:, :-1])
     train_data_cmeans_diagnosis = add_diagnosis_info(train_2d, train_clusters)
     test_data_cmeans_diagnosis = add_diagnosis_info(test_2d, test_clusters)
-    plot_results(train_data_cmeans_diagnosis, "training results")
-    plot_results(test_data_cmeans_diagnosis, "test results")
+    plot_results(train_data_cmeans_diagnosis,  "training dataset fuzzy "
+                                               "clustering results",
+                 current_working_dir)
+    plot_results(test_data_cmeans_diagnosis, "test dataset - fuzzy clustering "
+                                             "results", current_working_dir)
 
     train_clusters, test_clusters = perform_kmeans(train_data[:, :-1],
                                                    test_data[:, :-1])
     train_data_kmeans_diagnosis = add_diagnosis_info(train_2d, train_clusters)
     test_data_kmeans_diagnosis = add_diagnosis_info(test_2d, test_clusters)
-    plot_results(train_data_kmeans_diagnosis, "training results kmeans")
-    plot_results(test_data_kmeans_diagnosis, "test results kmeans")
+    plot_results(train_data_kmeans_diagnosis, "training dataset crisp "
+                                              "clustering results",
+                 current_working_dir)
+    plot_results(test_data_kmeans_diagnosis, "test dataset crisp clustering "
+                                             "results", current_working_dir)
 
 
 if __name__ == "__main__":
